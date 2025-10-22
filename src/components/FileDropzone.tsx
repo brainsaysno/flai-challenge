@@ -28,25 +28,24 @@ export function FileDropzone({
           <Upload className="h-5 w-5 text-muted-foreground" />
         </div>
         <p className="text-sm font-medium text-foreground">
-          Upload a project image
+          Upload a CSV file
         </p>
         <p className="text-sm text-muted-foreground mt-1">
           or,{" "}
           <label
             htmlFor="fileUpload"
             className="text-primary hover:text-primary/90 font-medium cursor-pointer"
-            onClick={(e) => e.stopPropagation()} // Prevent triggering handleBoxClick
+            onClick={(e) => e.stopPropagation()}
           >
             click to browse
-          </label>{" "}
-          (4MB max)
+          </label>
         </p>
         <input
           type="file"
           id="fileUpload"
           ref={fileInputRef}
           className="hidden"
-          accept="image/*"
+          accept=".csv,text/csv"
           onChange={(e) => handleFileSelect(e.target.files)}
         />
       </div>
