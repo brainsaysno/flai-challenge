@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Papa from "papaparse";
+import { X } from "lucide-react";
 import { FileDropzone } from "~/components/FileDropzone";
 import { csvRecordSchema, type CsvRecord } from "~/lib/schemas";
 import { DataTable } from "~/components/DataTable";
@@ -11,6 +12,15 @@ export default function HomePage() {
   const [data, setData] = useState<CsvRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const handleReset = () => {
+    setData([]);
+    setError(null);
+    setLoading(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleBoxClick = () => {
     fileInputRef.current?.click();
@@ -99,16 +109,37 @@ export default function HomePage() {
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="mb-6 text-3xl font-bold">CSV Upload</h1>
+    <div className="container mx-auto py-8 h-screen">
+      <div className="mb-6 flex items-center gap-3">
+        <h1 className="text-3xl font-bold">
+          {data.length === 0 ? "Upload Open Recalls" : "Open Recalls"}
+        </h1>
+        {data.length > 0 && (
+          <button
+            onClick={handleReset}
+            className="rounded-full p-1 hover:bg-muted transition-colors"
+            aria-label="Clear data and upload new file"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        )}
 
-      <FileDropzone
-        fileInputRef={fileInputRef}
-        handleBoxClick={handleBoxClick}
-        handleDragOver={handleDragOver}
-        handleDrop={handleDrop}
-        handleFileSelect={handleFileSelect}
-      />
+        {data.length > 0 && (
+          <h2 className="mb-4 text-xl font-semibold">
+            Loaded {data.length} records
+          </h2>
+        )}
+      </div>
+
+      {data.length === 0 && (
+        <FileDropzone
+          fileInputRef={fileInputRef}
+          handleBoxClick={handleBoxClick}
+          handleDragOver={handleDragOver}
+          handleDrop={handleDrop}
+          handleFileSelect={handleFileSelect}
+        />
+      )}
 
       {loading && (
         <div className="mt-4 text-center text-muted-foreground">
@@ -123,10 +154,7 @@ export default function HomePage() {
       )}
 
       {data.length > 0 && (
-        <div className="mt-8">
-          <h2 className="mb-4 text-xl font-semibold">
-            Loaded {data.length} records
-          </h2>
+        <div className="mt-8 grid grid-rows-2 gap-4 max-h-full">
           <DataTable data={data} />
         </div>
       )}

@@ -1,3 +1,11 @@
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table";
 import { type CsvRecord } from "~/lib/schemas";
 
 interface DataTableProps {
@@ -12,53 +20,41 @@ export function DataTable({ data }: DataTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-md border">
-      <table className="w-full border-collapse text-sm">
-        <thead className="bg-muted">
-          <tr>
-            <th className="border-b px-4 py-2 text-left font-medium">Phone</th>
-            <th className="border-b px-4 py-2 text-left font-medium">
-              First Name
-            </th>
-            <th className="border-b px-4 py-2 text-left font-medium">
-              Last Name
-            </th>
-            <th className="border-b px-4 py-2 text-left font-medium">VIN</th>
-            <th className="border-b px-4 py-2 text-left font-medium">Year</th>
-            <th className="border-b px-4 py-2 text-left font-medium">Make</th>
-            <th className="border-b px-4 py-2 text-left font-medium">Model</th>
-            <th className="border-b px-4 py-2 text-left font-medium">
-              Recall Code
-            </th>
-            <th className="border-b px-4 py-2 text-left font-medium">
-              Recall Description
-            </th>
-            <th className="border-b px-4 py-2 text-left font-medium">
-              Language
-            </th>
-            <th className="border-b px-4 py-2 text-left font-medium">
-              Priority
-            </th>
-          </tr>
-        </thead>
-        <tbody>
+    <div className="rounded-md border max-h-full overflow-y-scroll">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Phone</TableHead>
+            <TableHead>First Name</TableHead>
+            <TableHead>Last Name</TableHead>
+            <TableHead>VIN</TableHead>
+            <TableHead>Year</TableHead>
+            <TableHead>Make</TableHead>
+            <TableHead>Model</TableHead>
+            <TableHead>Recall Code</TableHead>
+            <TableHead>Recall Description</TableHead>
+            <TableHead>Language</TableHead>
+            <TableHead>Priority</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {data.map((record, index) => (
-            <tr key={index} className="hover:bg-muted/50">
-              <td className="border-b px-4 py-2">{record.phone}</td>
-              <td className="border-b px-4 py-2">{record.first_name}</td>
-              <td className="border-b px-4 py-2">{record.last_name}</td>
-              <td className="border-b px-4 py-2">{record.vin}</td>
-              <td className="border-b px-4 py-2">{record.year}</td>
-              <td className="border-b px-4 py-2">{record.make}</td>
-              <td className="border-b px-4 py-2">{record.model}</td>
-              <td className="border-b px-4 py-2">{record.recall_code}</td>
-              <td className="border-b px-4 py-2">{record.recall_desc}</td>
-              <td className="border-b px-4 py-2">{record.language}</td>
-              <td className="border-b px-4 py-2">{record.priority}</td>
-            </tr>
+            <TableRow key={index}>
+              <TableCell>{record.phone}</TableCell>
+              <TableCell>{record.first_name}</TableCell>
+              <TableCell>{record.last_name}</TableCell>
+              <TableCell>{record.vin}</TableCell>
+              <TableCell>{record.year}</TableCell>
+              <TableCell>{record.make}</TableCell>
+              <TableCell>{record.model}</TableCell>
+              <TableCell>{record.recall_code}</TableCell>
+              <TableCell>{record.recall_desc}</TableCell>
+              <TableCell>{record.language}</TableCell>
+              <TableCell>{record.priority}</TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
