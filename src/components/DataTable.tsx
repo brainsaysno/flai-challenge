@@ -10,9 +10,11 @@ import { type CsvRecord } from "~/lib/schemas";
 
 interface DataTableProps {
   data: CsvRecord[];
+  selectedIndex?: number;
+  onRowClick?: (index: number) => void;
 }
 
-export function DataTable({ data }: DataTableProps) {
+export function DataTable({ data, selectedIndex, onRowClick }: DataTableProps) {
   if (data.length === 0) {
     return (
       <div className="text-center text-muted-foreground">No data to display</div>
@@ -39,7 +41,11 @@ export function DataTable({ data }: DataTableProps) {
         </TableHeader>
         <TableBody>
           {data.map((record, index) => (
-            <TableRow key={index}>
+            <TableRow
+              key={index}
+              onClick={() => onRowClick?.(index)}
+              className={`cursor-pointer hover:bg-gray-100 ${selectedIndex === index ? "bg-blue-100 hover:bg-blue-100" : ""}`}
+            >
               <TableCell>{record.phone}</TableCell>
               <TableCell>{record.first_name}</TableCell>
               <TableCell>{record.last_name}</TableCell>

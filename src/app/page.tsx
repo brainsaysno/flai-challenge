@@ -7,12 +7,14 @@ import Handlebars from "handlebars";
 import { FileDropzone } from "~/components/FileDropzone";
 import { csvRecordSchema, type CsvRecord } from "~/lib/schemas";
 import { DataTable } from "~/components/DataTable";
+import { logCustomerData } from "./actions";
 
 export default function HomePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [data, setData] = useState<CsvRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedCustomerIndex, setSelectedCustomerIndex] = useState(0);
   const [template, setTemplate] = useState(
     "Hello {{first_name}} {{last_name}},\n\nYour {{year}} {{make}} {{model}} (VIN: {{vin}}) has an open recall.\n\nRecall: {{recall_code}}\nDescription: {{recall_desc}}\n\nPlease contact us at {{phone}}."
   );
@@ -21,6 +23,7 @@ export default function HomePage() {
     setData([]);
     setError(null);
     setLoading(false);
+    setSelectedCustomerIndex(0);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -66,6 +69,7 @@ export default function HomePage() {
     setLoading(true);
     setError(null);
     setData([]);
+    setSelectedCustomerIndex(0);
 
     Papa.parse(file, {
       header: true,
@@ -117,10 +121,14 @@ export default function HomePage() {
 
     try {
       const compiledTemplate = Handlebars.compile(template);
-      return compiledTemplate(data[0]);
+      return compiledTemplate(data[selectedCustomerIndex]);
     } catch (err) {
       return `Template error: ${err instanceof Error ? err.message : "Unknown error"}`;
     }
+  };
+
+  const handleLogCustomerData = async () => {
+    await logCustomerData(data);
   };
 
   return (
@@ -170,13 +178,28 @@ export default function HomePage() {
 
       {data.length > 0 && (
         <div className="grid grid-rows-2 gap-4 h-full">
-          <DataTable data={data} />
+          <DataTable
+            data={data}
+            selectedIndex={selectedCustomerIndex}
+            onRowClick={setSelectedCustomerIndex}
+          />
 
           <div className="border rounded-md">
             <div className="grid grid-cols-2 gap-4 pt-2 pb-1 px-4 border-b">
-              <label className="text-lg font-semibold">Template</label>
+              <div className="flex items-center">
+                <label className="text-lg font-semibold">Template</label>
+                <span className="ml-2 text-sm text-gray-500">Click any customer to preview</span>
+              </div>
 
-              <label className="text-lg font-semibold">Preview</label>
+              <div className="flex items-center justify-between">
+                <label className="text-lg font-semibold">Preview</label>
+                <button
+                  onClick={handleLogCustomerData}
+                  className="px-2 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  Log Customer Data
+                </button>
+              </div>
             </div>
             <div className="overflow-auto grid grid-cols-2 gap-4 py-1 px-4">
               <textarea
