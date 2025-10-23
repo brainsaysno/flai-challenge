@@ -93,13 +93,24 @@ export default function SmsPage() {
   const handleSend = async () => {
     if (!inputValue.trim() || isSending || !selectedContact) return;
 
+    const messageText = inputValue.trim();
+    const optimisticMessage: SmsMessage = {
+      id: `temp-${Date.now()}`,
+      contactId: selectedContact.id,
+      direction: "inbound",
+      body: messageText,
+      createdAt: new Date(),
+    };
+
+    setMessages((prev) => [...prev, optimisticMessage]);
+    setInputValue("");
     setIsSending(true);
+
     try {
-      await sendSmsMessage(selectedContact.id, inputValue.trim());
-      setInputValue("");
-      await fetchMessages();
+      await sendSmsMessage(selectedContact.id, messageText);
     } catch (error) {
       console.error("Failed to send message:", error);
+      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id));
     } finally {
       setIsSending(false);
     }
@@ -157,7 +168,7 @@ export default function SmsPage() {
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-semibold">{customerName}</p>
+            <p>Acting as: <span className="font-semibold">{customerName}</span></p>
             <p className="text-sm text-muted-foreground">
               {selectedContact.phone}
             </p>

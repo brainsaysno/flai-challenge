@@ -3,6 +3,7 @@
 import { eq, desc, asc, or, like, sql } from "drizzle-orm";
 import { db } from "~/server/db";
 import { contacts, messages } from "~/server/db/schema";
+import { sendToSmsQueue } from "~/lib/rabbitmq";
 
 export interface Contact {
   id: string;
@@ -27,27 +28,27 @@ export interface SmsMessage {
 export async function sendSmsMessage(
   contactId: string,
   messageBody: string
-): Promise<SmsMessage> {
-  const [newMessage] = await db
-    .insert(messages)
-    .values({
-      contactId,
-      direction: "outbound",
-      body: messageBody,
-    })
-    .returning();
+): Promise<void> {
+  const contact = await db.query.contacts.findFirst({
+    where: eq(contacts.id, contactId),
+  });
 
-  if (!newMessage) {
-    throw new Error("Failed to create message");
+  if (!contact) {
+    throw new Error("Contact not found");
   }
 
-  return {
-    id: newMessage.id,
-    contactId: newMessage.contactId,
-    direction: newMessage.direction as "inbound" | "outbound",
-    body: newMessage.body,
-    createdAt: newMessage.createdAt,
-  };
+  await sendToSmsQueue({
+    phone: contact.phone,
+    message: messageBody,
+    customer: {
+      first_name: contact.firstName,
+      last_name: contact.lastName,
+      vin: contact.vin,
+    },
+    campaignId: contact.campaignId,
+    direction: "inbound",
+    timestamp: new Date().toISOString(),
+  });
 }
 
 export async function getSmsMessages(contactId?: string): Promise<SmsMessage[]> {

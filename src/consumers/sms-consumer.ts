@@ -16,6 +16,7 @@ interface SmsMessage {
     vin: string;
   };
   campaignId?: string;
+  direction?: "inbound" | "outbound";
   timestamp: string;
 }
 
@@ -35,7 +36,7 @@ async function processSmsMessage(message: SmsMessage): Promise<void> {
     contactId: contact.id,
     campaignId: message.campaignId ?? contact.campaignId,
     body: message.message,
-    direction: "outbound",
+    direction: message.direction ?? "outbound",
   });
 
   console.log(`SMS message saved to database for contact ${contact.id}`);
