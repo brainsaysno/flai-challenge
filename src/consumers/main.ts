@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { startSmsConsumer } from "./sms-consumer";
 
 async function main(): Promise<void> {

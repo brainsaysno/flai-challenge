@@ -1,28 +1,44 @@
 import amqp, { type Channel, type ConsumeMessage } from "amqplib";
+import { eq } from "drizzle-orm";
+import { env } from "~/env";
 import { db } from "../server/db/index";
-import { messages } from "../server/db/schema";
+import { contacts, messages } from "../server/db/schema";
 
-const RABBITMQ_URL = process.env.RABBITMQ_URL || "amqp://admin:admin@localhost:5672";
+const RABBITMQ_URL = env.RABBITMQ_URL;
 const SMS_QUEUE = "sms_queue";
 
 interface SmsMessage {
-  contactId: string;
+  phone: string;
+  message: string;
+  customer: {
+    first_name: string;
+    last_name: string;
+    vin: string;
+  };
   campaignId?: string;
-  body: string;
-  direction: "inbound" | "outbound";
+  timestamp: string;
 }
 
 async function processSmsMessage(message: SmsMessage): Promise<void> {
   console.log("Processing SMS message:", message);
 
-  await db.insert(messages).values({
-    contactId: message.contactId,
-    campaignId: message.campaignId,
-    body: message.body,
-    direction: message.direction,
+  const contact = await db.query.contacts.findFirst({
+    where: eq(contacts.phone, message.phone),
   });
 
-  console.log(`SMS message saved to database for contact ${message.contactId}`);
+  if (!contact) {
+    console.warn(`Contact not found for phone ${message.phone}`);
+    return;
+  }
+
+  await db.insert(messages).values({
+    contactId: contact.id,
+    campaignId: message.campaignId ?? contact.campaignId,
+    body: message.message,
+    direction: "outbound",
+  });
+
+  console.log(`SMS message saved to database for contact ${contact.id}`);
 }
 
 export async function startSmsConsumer(): Promise<void> {

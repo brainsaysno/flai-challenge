@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Papa from "papaparse";
 import { X } from "lucide-react";
 import Handlebars from "handlebars";
@@ -11,6 +12,7 @@ import { sendSmsToAll } from "./actions";
 import { Textarea } from "~/components/ui/textarea";
 
 export default function HomePage() {
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [data, setData] = useState<CsvRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -118,16 +120,23 @@ export default function HomePage() {
     });
   };
 
-  const renderPreview = () => {
-    if (data.length === 0) return "No data loaded yet";
+  const getTemplatePreview = () => {
+    if (data.length === 0) return { content: "No data loaded yet", hasError: false };
 
     try {
       const compiledTemplate = Handlebars.compile(template);
-      return compiledTemplate(data[selectedCustomerIndex]);
+      const content = compiledTemplate(data[selectedCustomerIndex]);
+      return { content, hasError: false };
     } catch (err) {
-      return `Template error: ${err instanceof Error ? err.message : "Unknown error"}`;
+      return {
+        content: `Template error: ${err instanceof Error ? err.message : "Unknown error"}`,
+        hasError: true
+      };
     }
   };
+
+  const templatePreview = getTemplatePreview();
+  const isTemplateValid = !templatePreview.hasError && data.length > 0;
 
   const handleSendSms = async () => {
     setSending(true);
@@ -136,11 +145,11 @@ export default function HomePage() {
     try {
       const result = await sendSmsToAll(data, template);
       console.log(`Successfully queued ${result.count} SMS messages`);
+      router.push(`/campaigns/${result.campaignId}`);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to send SMS to queue"
       );
-    } finally {
       setSending(false);
     }
   };
@@ -191,7 +200,7 @@ export default function HomePage() {
       )}
 
       {data.length > 0 && (
-        <div className="grid grid-rows-2 gap-4 h-full">
+        <div className="grid grid-rows-2 gap-4 h-full py-6">
           <DataTable
             data={data}
             selectedIndex={selectedCustomerIndex}
@@ -199,8 +208,8 @@ export default function HomePage() {
           />
 
           <div className="border rounded-md">
-            <div className="grid grid-cols-2 gap-4 pt-2 pb-1 px-4 border-b">
-              <div className="flex items-center">
+            <div className="grid grid-cols-2 gap-4 pt-2 pb-1 px-4">
+              <div>
                 <label className="text-lg font-semibold">Template</label>
                 <span className="ml-2 text-sm text-gray-500">Click any customer to preview</span>
               </div>
@@ -209,20 +218,22 @@ export default function HomePage() {
                 <label className="text-lg font-semibold">Preview</label>
                 <button
                   onClick={handleSendSms}
-                  disabled={sending}
+                  disabled={sending || !isTemplateValid}
                   className="px-2 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   {sending ? "Sending..." : "Send SMS to all"}
                 </button>
               </div>
             </div>
-            <div className="overflow-auto grid grid-cols-2 gap-4 py-1 px-4">
+            <div className="overflow-auto grid grid-cols-2 gap-4 px-4 pt-1">
               <Textarea
                 value={template}
                 onChange={(e) => setTemplate(e.target.value)}
                 style={{ scrollbarWidth: 'none' }}
               />
-              <pre className="whitespace-pre-wrap text-sm p-2">{renderPreview()}</pre>
+              <pre className={`whitespace-pre-wrap text-sm px-2 ${templatePreview.hasError ? 'text-red-600' : ''}`}>
+                {templatePreview.content}
+              </pre>
             </div>
           </div>
         </div>
