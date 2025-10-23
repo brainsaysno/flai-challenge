@@ -3,6 +3,7 @@ import { env } from "~/env";
 
 const RABBITMQ_URL = env.RABBITMQ_URL || "amqp://admin:admin@localhost:5672";
 const SMS_QUEUE = "sms_queue";
+const AGENT_QUEUE = "agent_queue";
 
 let channelModel: ChannelModel | null = null;
 let channel: Channel | null = null;
@@ -27,6 +28,7 @@ async function getChannel(): Promise<Channel> {
   if (!channel) {
     channel = await channelModel.createChannel();
     await channel.assertQueue(SMS_QUEUE, { durable: true });
+    await channel.assertQueue(AGENT_QUEUE, { durable: true });
   }
 
   return channel;
@@ -37,6 +39,13 @@ export async function sendToSmsQueue(message: unknown): Promise<void> {
   const messageBuffer = Buffer.from(JSON.stringify(message));
 
   ch.sendToQueue(SMS_QUEUE, messageBuffer, { persistent: true });
+}
+
+export async function sendToAgentQueue(message: unknown): Promise<void> {
+  const ch = await getChannel();
+  const messageBuffer = Buffer.from(JSON.stringify(message));
+
+  ch.sendToQueue(AGENT_QUEUE, messageBuffer, { persistent: true });
 }
 
 export async function closeRabbitMQ(): Promise<void> {

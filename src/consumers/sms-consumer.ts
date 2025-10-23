@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { env } from "~/env";
 import { db } from "../server/db/index";
 import { contacts, messages } from "../server/db/schema";
+import { sendToAgentQueue } from "~/lib/rabbitmq";
 
 const RABBITMQ_URL = env.RABBITMQ_URL;
 const SMS_QUEUE = "sms_queue";
@@ -40,6 +41,19 @@ async function processSmsMessage(message: SmsMessage): Promise<void> {
   });
 
   console.log(`SMS message saved to database for contact ${contact.id}`);
+
+  if (message.direction === "inbound") {
+    await sendToAgentQueue({
+      phone: message.phone,
+      message: message.message,
+      customer: message.customer,
+      campaignId: message.campaignId ?? contact.campaignId,
+      contactId: contact.id,
+      timestamp: message.timestamp,
+    });
+
+    console.log(`Inbound message sent to agent queue for contact ${contact.id}`);
+  }
 }
 
 export async function startSmsConsumer(): Promise<void> {
