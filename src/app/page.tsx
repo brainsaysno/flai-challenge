@@ -8,6 +8,7 @@ import { FileDropzone } from "~/components/FileDropzone";
 import { csvRecordSchema, type CsvRecord } from "~/lib/schemas";
 import { DataTable } from "~/components/DataTable";
 import { logCustomerData } from "./actions";
+import { Textarea } from "~/components/ui/textarea";
 
 export default function HomePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -202,13 +203,12 @@ export default function HomePage() {
               </div>
             </div>
             <div className="overflow-auto grid grid-cols-2 gap-4 py-1 px-4">
-              <textarea
+              <Textarea
                 value={template}
                 onChange={(e) => setTemplate(e.target.value)}
-                className="flex-1 rounded-md font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter your Handlebars template here..."
+                style={{ scrollbarWidth: 'none' }}
               />
-              <pre className="whitespace-pre-wrap text-sm">{renderPreview()}</pre>
+              <pre className="whitespace-pre-wrap text-sm p-2">{renderPreview()}</pre>
             </div>
           </div>
         </div>
