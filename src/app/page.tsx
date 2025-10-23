@@ -7,7 +7,7 @@ import Handlebars from "handlebars";
 import { FileDropzone } from "~/components/FileDropzone";
 import { csvRecordSchema, type CsvRecord } from "~/lib/schemas";
 import { DataTable } from "~/components/DataTable";
-import { logCustomerData } from "./actions";
+import { sendSmsToAll } from "./actions";
 import { Textarea } from "~/components/ui/textarea";
 
 export default function HomePage() {
@@ -15,6 +15,7 @@ export default function HomePage() {
   const [data, setData] = useState<CsvRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
   const [selectedCustomerIndex, setSelectedCustomerIndex] = useState(0);
   const [template, setTemplate] = useState(
     "Hello {{first_name}} {{last_name}},\n\nYour {{year}} {{make}} {{model}} (VIN: {{vin}}) has an open recall.\n\nRecall: {{recall_code}}\nDescription: {{recall_desc}}\n\nPlease contact us at {{phone}}."
@@ -128,8 +129,20 @@ export default function HomePage() {
     }
   };
 
-  const handleLogCustomerData = async () => {
-    await logCustomerData(data);
+  const handleSendSms = async () => {
+    setSending(true);
+    setError(null);
+
+    try {
+      const result = await sendSmsToAll(data, template);
+      console.log(`Successfully queued ${result.count} SMS messages`);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to send SMS to queue"
+      );
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -195,10 +208,11 @@ export default function HomePage() {
               <div className="flex items-center justify-between">
                 <label className="text-lg font-semibold">Preview</label>
                 <button
-                  onClick={handleLogCustomerData}
-                  className="px-2 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  onClick={handleSendSms}
+                  disabled={sending}
+                  className="px-2 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  Log Customer Data
+                  {sending ? "Sending..." : "Send SMS to all"}
                 </button>
               </div>
             </div>
