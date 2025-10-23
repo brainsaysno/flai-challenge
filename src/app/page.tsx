@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Papa from "papaparse";
 import { X } from "lucide-react";
+import Handlebars from "handlebars";
 import { FileDropzone } from "~/components/FileDropzone";
 import { csvRecordSchema, type CsvRecord } from "~/lib/schemas";
 import { DataTable } from "~/components/DataTable";
@@ -12,6 +13,9 @@ export default function HomePage() {
   const [data, setData] = useState<CsvRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [template, setTemplate] = useState(
+    "Hello {{first_name}} {{last_name}},\n\nYour {{year}} {{make}} {{model}} (VIN: {{vin}}) has an open recall.\n\nRecall: {{recall_code}}\nDescription: {{recall_desc}}\n\nPlease contact us at {{phone}}."
+  );
 
   const handleReset = () => {
     setData([]);
@@ -108,9 +112,20 @@ export default function HomePage() {
     });
   };
 
+  const renderPreview = () => {
+    if (data.length === 0) return "No data loaded yet";
+
+    try {
+      const compiledTemplate = Handlebars.compile(template);
+      return compiledTemplate(data[0]);
+    } catch (err) {
+      return `Template error: ${err instanceof Error ? err.message : "Unknown error"}`;
+    }
+  };
+
   return (
-    <div className="container mx-auto py-8 h-screen">
-      <div className="mb-6 flex items-center gap-3">
+    <div className="container mx-auto box-border py-8 h-screen">
+      <div className="flex items-center gap-3">
         <h1 className="text-3xl font-bold">
           {data.length === 0 ? "Upload Open Recalls" : "Open Recalls"}
         </h1>
@@ -125,7 +140,7 @@ export default function HomePage() {
         )}
 
         {data.length > 0 && (
-          <h2 className="mb-4 text-xl font-semibold">
+          <h2 className="text-xl font-semibold">
             Loaded {data.length} records
           </h2>
         )}
@@ -154,10 +169,28 @@ export default function HomePage() {
       )}
 
       {data.length > 0 && (
-        <div className="mt-8 grid grid-rows-2 gap-4 max-h-full">
+        <div className="grid grid-rows-2 gap-4 h-full">
           <DataTable data={data} />
+
+          <div className="border rounded-md">
+            <div className="grid grid-cols-2 gap-4 pt-2 pb-1 px-4 border-b">
+              <label className="text-lg font-semibold">Template</label>
+
+              <label className="text-lg font-semibold">Preview</label>
+            </div>
+            <div className="overflow-auto grid grid-cols-2 gap-4 py-1 px-4">
+              <textarea
+                value={template}
+                onChange={(e) => setTemplate(e.target.value)}
+                className="flex-1 rounded-md font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter your Handlebars template here..."
+              />
+              <pre className="whitespace-pre-wrap text-sm">{renderPreview()}</pre>
+            </div>
+          </div>
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 }
