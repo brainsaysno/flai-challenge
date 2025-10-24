@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Papa from "papaparse";
 import { csvRecordSchema, type CsvRecord } from "~/lib/schemas";
@@ -8,7 +8,8 @@ import { DataTable } from "~/components/DataTable";
 import { PageHeader } from "~/components/PageHeader";
 import { FileUploadSection } from "~/components/FileUploadSection";
 import { TemplateEditor } from "~/components/TemplateEditor";
-import { sendSmsToAll, translateTemplate } from "./actions";
+import { ActiveCampaignsTable } from "~/components/ActiveCampaignsTable";
+import { sendSmsToAll, translateTemplate, getAllCampaigns } from "./actions";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 
 const DEFAULT_TEMPLATE = `Hello {{first_name}} {{last_name}},\n\nYour {{year}} {{make}} {{model}} (VIN: {{vin}}) has an open recall.\n\nRecall: {{recall_code}}\nDescription: {{recall_desc}}\n\nPlease reply with a time that works for you. We can schedule your recall service Monday-Friday between 9 AM and 5 PM, and it takes about an hour.`
@@ -26,6 +27,24 @@ export default function HomePage() {
     default: DEFAULT_TEMPLATE
   });
   const [activeLanguage, setActiveLanguage] = useState("default");
+  const [campaigns, setCampaigns] = useState<Array<{
+    id: string;
+    contactCount: number;
+    scheduledCount: number;
+  }>>([]);
+
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+      try {
+        const allCampaigns = await getAllCampaigns();
+        setCampaigns(allCampaigns);
+      } catch (err) {
+        console.error("Failed to fetch campaigns:", err);
+      }
+    };
+
+    void fetchCampaigns();
+  }, []);
 
   const handleReset = () => {
     setData([]);
@@ -188,50 +207,64 @@ export default function HomePage() {
   };
 
   return (
-    <div className="container mx-auto box-border py-8 h-screen">
+    <div className="container mx-auto box-border py-8 h-screen flex flex-col">
       <PageHeader dataLength={data.length} onReset={handleReset} />
 
-      {data.length === 0 && (
-        <FileUploadSection
-          fileInputRef={fileInputRef}
-          loading={loading}
-          error={error}
-          onBoxClick={handleBoxClick}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          onFileSelect={handleFileSelect}
-        />
-      )}
+      {data.length === 0 ? (
+        <div className="flex flex-col gap-4 flex-1 overflow-hidden">
+          <div className="flex flex-col overflow-hidden">
+            <h2 className="text-2xl font-bold mb-4">New campaign</h2>
+            <div className="flex-1 overflow-auto">
+              <FileUploadSection
+                fileInputRef={fileInputRef}
+                loading={loading}
+                error={error}
+                onBoxClick={handleBoxClick}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                onFileSelect={handleFileSelect}
+              />
+            </div>
+          </div>
 
-      {data.length > 0 && error && (
-        <Alert variant="destructive" className="mt-4">
-          <AlertDescription>
-            <pre className="whitespace-pre-wrap text-sm">{error}</pre>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {data.length > 0 && (
-        <div className="grid grid-rows-2 gap-4 h-full py-6">
-          <DataTable
-            data={data}
-            selectedIndex={selectedCustomerIndex}
-            onRowClick={handleCustomerSelect}
-          />
-
-          <TemplateEditor
-            data={data}
-            templates={templates}
-            activeLanguage={activeLanguage}
-            selectedCustomerIndex={selectedCustomerIndex}
-            translating={translating}
-            sending={sending}
-            onTemplateChange={handleTemplateChange}
-            onLanguageChange={setActiveLanguage}
-            onTranslate={handleTranslate}
-            onSendSms={handleSendSms}
-          />
+          <div className="flex flex-col overflow-hidden">
+            <h2 className="text-2xl font-bold mb-4">Active campaigns</h2>
+            <div className="flex-1 overflow-auto">
+              <ActiveCampaignsTable campaigns={campaigns} />
+            </div>
+          </div>
         </div>
+      ) : (
+        <>
+          {error && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertDescription>
+                <pre className="whitespace-pre-wrap text-sm">{error}</pre>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="grid grid-cols-2 gap-4 flex-1 py-6 overflow-hidden">
+            <DataTable
+              data={data}
+              selectedIndex={selectedCustomerIndex}
+              onRowClick={handleCustomerSelect}
+            />
+
+            <TemplateEditor
+              data={data}
+              templates={templates}
+              activeLanguage={activeLanguage}
+              selectedCustomerIndex={selectedCustomerIndex}
+              translating={translating}
+              sending={sending}
+              onTemplateChange={handleTemplateChange}
+              onLanguageChange={setActiveLanguage}
+              onTranslate={handleTranslate}
+              onSendSms={handleSendSms}
+            />
+          </div>
+        </>
       )}
     </div>
   );

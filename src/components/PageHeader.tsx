@@ -7,7 +7,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ dataLength, onReset }: PageHeaderProps) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3 mb-4">
       <h1 className="text-3xl font-bold">
         {dataLength === 0 ? "Upload Open Recalls" : "Open Recalls"}
       </h1>

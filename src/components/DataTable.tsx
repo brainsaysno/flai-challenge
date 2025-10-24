@@ -26,13 +26,8 @@ export function DataTable({ data, selectedIndex, onRowClick }: DataTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Phone</TableHead>
-            <TableHead>First Name</TableHead>
-            <TableHead>Last Name</TableHead>
-            <TableHead>VIN</TableHead>
-            <TableHead>Year</TableHead>
-            <TableHead>Make</TableHead>
-            <TableHead>Model</TableHead>
+            <TableHead>Contact</TableHead>
+            <TableHead>Vehicle</TableHead>
             <TableHead>Recall Code</TableHead>
             <TableHead>Recall Description</TableHead>
             <TableHead>Language</TableHead>
@@ -46,13 +41,18 @@ export function DataTable({ data, selectedIndex, onRowClick }: DataTableProps) {
               onClick={() => onRowClick?.(index)}
               className={`cursor-pointer hover:bg-muted/50 ${selectedIndex === index ? "bg-accent hover:bg-accent" : ""}`}
             >
-              <TableCell>{record.phone}</TableCell>
-              <TableCell>{record.first_name}</TableCell>
-              <TableCell>{record.last_name}</TableCell>
-              <TableCell>{record.vin}</TableCell>
-              <TableCell>{record.year}</TableCell>
-              <TableCell>{record.make}</TableCell>
-              <TableCell>{record.model}</TableCell>
+              <TableCell>
+                <div className="flex flex-col">
+                  <span>{record.first_name} {record.last_name}</span>
+                  <span className="text-xs text-muted-foreground">{record.phone}</span>
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex flex-col">
+                  <span>{record.year} {record.make} {record.model}</span>
+                  <span className="text-xs text-muted-foreground">{record.vin}</span>
+                </div>
+              </TableCell>
               <TableCell>{record.recall_code}</TableCell>
               <TableCell>{record.recall_desc}</TableCell>
               <TableCell>{record.language}</TableCell>

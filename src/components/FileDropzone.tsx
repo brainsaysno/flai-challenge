@@ -19,7 +19,7 @@ export function FileDropzone({
   return (
     <div className="px-6">
       <div
-        className="border-2 border-dashed border-border rounded-md p-8 flex flex-col items-center justify-center text-center cursor-pointer"
+        className="border-2 border-dashed border-border rounded-md p-8 flex flex-col items-center justify-center text-center cursor-pointer h-full"
         onClick={handleBoxClick}
         onDragOver={handleDragOver}
         onDrop={handleDrop}

@@ -209,3 +209,28 @@ export async function getCampaignContactsWithStats(campaignId: string) {
     );
   }
 }
+
+export async function getAllCampaigns() {
+  try {
+    const allCampaigns = await db
+      .select({
+        id: campaigns.id,
+        contactCount: count(contacts.id),
+        scheduledCount: count(appointments.id),
+      })
+      .from(campaigns)
+      .leftJoin(contacts, eq(campaigns.id, contacts.campaignId))
+      .leftJoin(appointments, eq(campaigns.id, appointments.campaignId))
+      .groupBy(campaigns.id)
+      .orderBy(desc(campaigns.id));
+
+    return allCampaigns;
+  } catch (error) {
+    console.error("Error getting all campaigns:", error);
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : "Failed to get all campaigns"
+    );
+  }
+}

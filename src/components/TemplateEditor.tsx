@@ -59,24 +59,53 @@ export function TemplateEditor({
   const isTemplateValid = !templatePreview.hasError && data.length > 0;
 
   return (
-    <div className="border rounded-md">
-      <div className="grid grid-cols-2 gap-4 pt-2 pb-1 px-4">
-        <div className="flex items-center gap-2">
-          <label className="text-lg font-semibold">Template</label>
-          <Button
-            onClick={onTranslate}
-            disabled={translating || data.length === 0}
-            size="sm"
-            variant="outline"
-          >
-            {translating ? "Translating..." : "Translate"}
-          </Button>
-          <span className="ml-2 text-sm text-muted-foreground">
-            Click any customer to preview
-          </span>
+    <div className="border rounded-md flex flex-col h-full">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between pt-2 pb-1 px-4">
+          <div className="flex items-center gap-2">
+            <label className="text-lg font-semibold">Template</label>
+            <Button
+              onClick={onTranslate}
+              disabled={translating || data.length === 0}
+              size="sm"
+              variant="outline"
+            >
+              {translating ? "Translating..." : "Translate"}
+            </Button>
+            <span className="ml-2 text-sm text-muted-foreground">
+              Click any customer to preview
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center justify-between">
+        {Object.keys(templates).length > 1 && (
+          <div className="px-4 pb-2">
+            <Tabs value={activeLanguage} onValueChange={onLanguageChange}>
+              <TabsList>
+                {Object.keys(templates)
+                  .sort((a, b) => (a === "default" ? -1 : b === "default" ? 1 : a.localeCompare(b)))
+                  .map((lang) => (
+                    <TabsTrigger key={lang} value={lang}>
+                      {lang === "default" ? "Default" : lang.toUpperCase()}
+                    </TabsTrigger>
+                  ))}
+              </TabsList>
+            </Tabs>
+          </div>
+        )}
+
+        <div className="overflow-auto px-4 pt-1 pb-4 flex-1">
+          <Textarea
+            value={templates[activeLanguage] ?? ""}
+            onChange={(e) => onTemplateChange(activeLanguage, e.target.value)}
+            className="h-full min-h-[150px]"
+            style={{ scrollbarWidth: "none" }}
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col border-t overflow-hidden">
+        <div className="flex items-center justify-between pt-2 pb-1 px-4">
           <label className="text-lg font-semibold">Preview</label>
           <Button
             onClick={onSendSms}
@@ -86,33 +115,13 @@ export function TemplateEditor({
             {sending ? "Sending..." : "Send SMS to all"}
           </Button>
         </div>
-      </div>
-
-      <div className="px-4 pb-2">
-        <Tabs value={activeLanguage} onValueChange={onLanguageChange}>
-          <TabsList>
-            {Object.keys(templates)
-              .sort((a, b) => (a === "default" ? -1 : b === "default" ? 1 : a.localeCompare(b)))
-              .map((lang) => (
-                <TabsTrigger key={lang} value={lang}>
-                  {lang === "default" ? "Default" : lang.toUpperCase()}
-                </TabsTrigger>
-              ))}
-          </TabsList>
-        </Tabs>
-      </div>
-
-      <div className="overflow-auto grid grid-cols-2 gap-4 px-4 pt-1">
-        <Textarea
-          value={templates[activeLanguage] ?? ""}
-          onChange={(e) => onTemplateChange(activeLanguage, e.target.value)}
-          style={{ scrollbarWidth: "none" }}
-        />
-        <pre
-          className={`whitespace-pre-wrap text-sm px-2 ${templatePreview.hasError ? "text-destructive" : ""}`}
-        >
-          {templatePreview.content}
-        </pre>
+        <div className="overflow-auto px-4 pt-1 pb-4 flex-1">
+          <pre
+            className={`whitespace-pre-wrap text-sm px-2 ${templatePreview.hasError ? "text-destructive" : ""}`}
+          >
+            {templatePreview.content}
+          </pre>
+        </div>
       </div>
     </div>
   );
