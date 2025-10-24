@@ -47,6 +47,7 @@ async function processAgentRequest(request: AgentRequest): Promise<void> {
 
   const agentContext: AgentContext = {
     message: request.message,
+    contactId: contact.id,
     customer: {
       firstName: contact.firstName,
       lastName: contact.lastName,
