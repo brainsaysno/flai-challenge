@@ -8,8 +8,10 @@ import Handlebars from "handlebars";
 import { FileDropzone } from "~/components/FileDropzone";
 import { csvRecordSchema, type CsvRecord } from "~/lib/schemas";
 import { DataTable } from "~/components/DataTable";
-import { sendSmsToAll } from "./actions";
+import { sendSmsToAll, translateTemplate } from "./actions";
 import { Textarea } from "~/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { Button } from "~/components/ui/button";
 
 export default function HomePage() {
   const router = useRouter();
@@ -18,16 +20,24 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [translating, setTranslating] = useState(false);
   const [selectedCustomerIndex, setSelectedCustomerIndex] = useState(0);
-  const [template, setTemplate] = useState(
-    "Hello {{first_name}} {{last_name}},\n\nYour {{year}} {{make}} {{model}} (VIN: {{vin}}) has an open recall.\n\nRecall: {{recall_code}}\nDescription: {{recall_desc}}\n\nPlease contact us at {{phone}}."
-  );
+  const [templates, setTemplates] = useState<Record<string, string>>({
+    default:
+      "Hello {{first_name}} {{last_name}},\n\nYour {{year}} {{make}} {{model}} (VIN: {{vin}}) has an open recall.\n\nRecall: {{recall_code}}\nDescription: {{recall_desc}}\n\nPlease contact us at {{phone}}.",
+  });
+  const [activeLanguage, setActiveLanguage] = useState("default");
 
   const handleReset = () => {
     setData([]);
     setError(null);
     setLoading(false);
     setSelectedCustomerIndex(0);
+    setTemplates({
+      default:
+        "Hello {{first_name}} {{last_name}},\n\nYour {{year}} {{make}} {{model}} (VIN: {{vin}}) has an open recall.\n\nRecall: {{recall_code}}\nDescription: {{recall_desc}}\n\nPlease contact us at {{phone}}.",
+    });
+    setActiveLanguage("default");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -120,17 +130,56 @@ export default function HomePage() {
     });
   };
 
-  const getTemplatePreview = () => {
-    if (data.length === 0) return { content: "No data loaded yet", hasError: false };
+  const uniqueLanguages = Array.from(
+    new Set(data.map((customer) => customer.language))
+  );
+
+  const handleTranslate = async () => {
+    setTranslating(true);
+    setError(null);
 
     try {
-      const compiledTemplate = Handlebars.compile(template);
-      const content = compiledTemplate(data[selectedCustomerIndex]);
-      return { content, hasError: false };
+      const defaultTemplate = templates.default;
+      if (!defaultTemplate) {
+        throw new Error("No default template found");
+      }
+
+      const translatedTemplates = await translateTemplate(
+        defaultTemplate,
+        uniqueLanguages
+      );
+      setTemplates(translatedTemplates);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to translate template"
+      );
+    } finally {
+      setTranslating(false);
+    }
+  };
+
+  const getTemplatePreview = () => {
+    if (data.length === 0)
+      return { content: "No data loaded yet", hasError: false };
+
+    try {
+      const selectedCustomer = data[selectedCustomerIndex];
+      const templateToPreview = templates[activeLanguage] ?? templates.default;
+
+      if (!templateToPreview) {
+        return {
+          content: "No template available for this language",
+          hasError: true,
+        };
+      }
+
+      const compiledTemplate = Handlebars.compile(templateToPreview);
+      const content = compiledTemplate(selectedCustomer);
+      return { content, hasError: false, language: activeLanguage };
     } catch (err) {
       return {
         content: `Template error: ${err instanceof Error ? err.message : "Unknown error"}`,
-        hasError: true
+        hasError: true,
       };
     }
   };
@@ -143,7 +192,7 @@ export default function HomePage() {
     setError(null);
 
     try {
-      const result = await sendSmsToAll(data, template);
+      const result = await sendSmsToAll(data, templates);
       console.log(`Successfully queued ${result.count} SMS messages`);
       router.push(`/campaigns/${result.campaignId}`);
     } catch (err) {
@@ -209,29 +258,61 @@ export default function HomePage() {
 
           <div className="border rounded-md">
             <div className="grid grid-cols-2 gap-4 pt-2 pb-1 px-4">
-              <div>
+              <div className="flex items-center gap-2">
                 <label className="text-lg font-semibold">Template</label>
-                <span className="ml-2 text-sm text-gray-500">Click any customer to preview</span>
+                <Button
+                  onClick={handleTranslate}
+                  disabled={translating || data.length === 0}
+                  size="sm"
+                  variant="outline"
+                >
+                  {translating ? "Translating..." : "Translate"}
+                </Button>
+                <span className="ml-2 text-sm text-gray-500">
+                  Click any customer to preview
+                </span>
               </div>
 
               <div className="flex items-center justify-between">
                 <label className="text-lg font-semibold">Preview</label>
-                <button
+                <Button
                   onClick={handleSendSms}
                   disabled={sending || !isTemplateValid}
-                  className="px-2 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  size="sm"
                 >
                   {sending ? "Sending..." : "Send SMS to all"}
-                </button>
+                </Button>
               </div>
             </div>
+
+            <div className="px-4 pb-2">
+              <Tabs value={activeLanguage} onValueChange={setActiveLanguage}>
+                <TabsList>
+                  {Object.keys(templates)
+                    .sort((a, b) => (a === "default" ? -1 : b === "default" ? 1 : a.localeCompare(b)))
+                    .map((lang) => (
+                      <TabsTrigger key={lang} value={lang}>
+                        {lang === "default" ? "Default" : lang.toUpperCase()}
+                      </TabsTrigger>
+                    ))}
+                </TabsList>
+              </Tabs>
+            </div>
+
             <div className="overflow-auto grid grid-cols-2 gap-4 px-4 pt-1">
               <Textarea
-                value={template}
-                onChange={(e) => setTemplate(e.target.value)}
-                style={{ scrollbarWidth: 'none' }}
+                value={templates[activeLanguage] ?? ""}
+                onChange={(e) =>
+                  setTemplates((prev) => ({
+                    ...prev,
+                    [activeLanguage]: e.target.value,
+                  }))
+                }
+                style={{ scrollbarWidth: "none" }}
               />
-              <pre className={`whitespace-pre-wrap text-sm px-2 ${templatePreview.hasError ? 'text-red-600' : ''}`}>
+              <pre
+                className={`whitespace-pre-wrap text-sm px-2 ${templatePreview.hasError ? "text-red-600" : ""}`}
+              >
                 {templatePreview.content}
               </pre>
             </div>
