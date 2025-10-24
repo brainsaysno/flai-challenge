@@ -1,8 +1,8 @@
 "use server";
 
-import { eq, desc, asc, or, like, sql } from "drizzle-orm";
+import { eq, asc, or, like, sql } from "drizzle-orm";
 import { db } from "~/server/db";
-import { contacts, messages } from "~/server/db/schema";
+import { contacts, messages, appointments } from "~/server/db/schema";
 import { sendToSmsQueue } from "~/lib/rabbitmq";
 
 export interface Contact {
@@ -23,6 +23,13 @@ export interface SmsMessage {
     lastName: string;
     phone: string;
   };
+}
+
+export interface Appointment {
+  id: string;
+  contactId: string;
+  campaignId: string | null;
+  scheduledAt: Date;
 }
 
 export async function sendSmsMessage(
@@ -54,34 +61,34 @@ export async function sendSmsMessage(
 export async function getSmsMessages(contactId?: string): Promise<SmsMessage[]> {
   const query = contactId
     ? db
-        .select({
-          id: messages.id,
-          contactId: messages.contactId,
-          direction: messages.direction,
-          body: messages.body,
-          createdAt: messages.createdAt,
-          firstName: contacts.firstName,
-          lastName: contacts.lastName,
-          phone: contacts.phone,
-        })
-        .from(messages)
-        .leftJoin(contacts, eq(messages.contactId, contacts.id))
-        .where(eq(messages.contactId, contactId))
-        .orderBy(asc(messages.createdAt))
+      .select({
+        id: messages.id,
+        contactId: messages.contactId,
+        direction: messages.direction,
+        body: messages.body,
+        createdAt: messages.createdAt,
+        firstName: contacts.firstName,
+        lastName: contacts.lastName,
+        phone: contacts.phone,
+      })
+      .from(messages)
+      .leftJoin(contacts, eq(messages.contactId, contacts.id))
+      .where(eq(messages.contactId, contactId))
+      .orderBy(asc(messages.createdAt))
     : db
-        .select({
-          id: messages.id,
-          contactId: messages.contactId,
-          direction: messages.direction,
-          body: messages.body,
-          createdAt: messages.createdAt,
-          firstName: contacts.firstName,
-          lastName: contacts.lastName,
-          phone: contacts.phone,
-        })
-        .from(messages)
-        .leftJoin(contacts, eq(messages.contactId, contacts.id))
-        .orderBy(asc(messages.createdAt));
+      .select({
+        id: messages.id,
+        contactId: messages.contactId,
+        direction: messages.direction,
+        body: messages.body,
+        createdAt: messages.createdAt,
+        firstName: contacts.firstName,
+        lastName: contacts.lastName,
+        phone: contacts.phone,
+      })
+      .from(messages)
+      .leftJoin(contacts, eq(messages.contactId, contacts.id))
+      .orderBy(asc(messages.createdAt));
 
   const results = await query;
 
@@ -93,10 +100,10 @@ export async function getSmsMessages(contactId?: string): Promise<SmsMessage[]> 
     createdAt: row.createdAt,
     contact: row.firstName && row.lastName && row.phone
       ? {
-          firstName: row.firstName,
-          lastName: row.lastName,
-          phone: row.phone,
-        }
+        firstName: row.firstName,
+        lastName: row.lastName,
+        phone: row.phone,
+      }
       : undefined,
   }));
 }
@@ -177,4 +184,19 @@ export async function simulateInboundMessage(
     body: newMessage.body,
     createdAt: newMessage.createdAt,
   };
+}
+
+export async function getAppointments(contactId: string): Promise<Appointment[]> {
+  const results = await db
+    .select({
+      id: appointments.id,
+      contactId: appointments.contactId,
+      campaignId: appointments.campaignId,
+      scheduledAt: appointments.scheduledAt,
+    })
+    .from(appointments)
+    .where(eq(appointments.contactId, contactId))
+    .orderBy(asc(appointments.scheduledAt));
+
+  return results;
 }

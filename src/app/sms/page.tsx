@@ -20,8 +20,10 @@ import {
   getSmsMessages,
   sendSmsMessage,
   searchContacts,
+  getAppointments,
   type Contact,
   type SmsMessage,
+  type Appointment,
 } from "./actions";
 
 export default function SmsPage() {
@@ -29,6 +31,7 @@ export default function SmsPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [messages, setMessages] = useState<SmsMessage[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -44,8 +47,12 @@ export default function SmsPage() {
   const fetchMessages = async () => {
     try {
       if (selectedContact) {
-        const fetchedMessages = await getSmsMessages(selectedContact.id);
+        const [fetchedMessages, fetchedAppointments] = await Promise.all([
+          getSmsMessages(selectedContact.id),
+          getAppointments(selectedContact.id),
+        ]);
         setMessages(fetchedMessages);
+        setAppointments(fetchedAppointments);
       }
     } catch (error) {
       console.error("Failed to fetch messages:", error);
@@ -87,7 +94,7 @@ export default function SmsPage() {
 
     const interval = setInterval(() => {
       fetchMessages();
-    }, 10000);
+    }, 2000);
 
     return () => clearInterval(interval);
   }, [selectedContact]);
@@ -153,6 +160,7 @@ export default function SmsPage() {
     setSelectedContact(contact);
     setCommandOpen(false);
     setMessages([]);
+    setAppointments([]);
 
     const params = new URLSearchParams(searchParams.toString());
     params.set("contactId", contact.id);
@@ -175,6 +183,19 @@ export default function SmsPage() {
 
   const customerName = `${selectedContact.firstName} ${selectedContact.lastName}`;
   const customerInitials = `${selectedContact.firstName[0]}${selectedContact.lastName[0]}`;
+
+  type TimelineItem =
+    | { type: "message"; data: SmsMessage }
+    | { type: "appointment"; data: Appointment };
+
+  const timeline: TimelineItem[] = [
+    ...messages.map((msg): TimelineItem => ({ type: "message", data: msg })),
+    ...appointments.map((apt): TimelineItem => ({ type: "appointment", data: apt })),
+  ].sort((a, b) => {
+    const timeA = a.type === "message" ? a.data.createdAt : a.data.scheduledAt;
+    const timeB = b.type === "message" ? b.data.createdAt : b.data.scheduledAt;
+    return new Date(timeA).getTime() - new Date(timeB).getTime();
+  });
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -234,41 +255,77 @@ export default function SmsPage() {
 
       <ScrollArea className="flex-1 px-6 py-4">
         <div className="space-y-4 max-w-3xl mx-auto">
-          {messages.length === 0 && (
+          {timeline.length === 0 && (
             <div className="text-center text-muted-foreground py-8">
               No messages yet. Start a conversation!
             </div>
           )}
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.direction === "outbound" ? "justify-end" : "justify-start"}`}
-            >
-              <Card
-                className={`max-w-[70%] px-4 py-2 ${message.direction === "outbound"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted"
-                  }`}
-              >
-                <p className="text-sm whitespace-pre-wrap break-words">
-                  {message.body}
-                </p>
-                <p
-                  className={`text-xs mt-1 ${message.direction === "outbound"
-                    ? "text-primary-foreground/70"
-                    : "text-muted-foreground"
-                    }`}
+          {timeline.map((item, index) => {
+            if (item.type === "message") {
+              const message = item.data;
+              return (
+                <div
+                  key={`message-${message.id}`}
+                  className={`flex ${message.direction === "outbound" ? "justify-end" : "justify-start"}`}
                 >
-                  {isMounted
-                    ? new Date(message.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                    : ""}
-                </p>
-              </Card>
-            </div>
-          ))}
+                  <Card
+                    className={`max-w-[70%] px-4 py-2 ${message.direction === "outbound"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted"
+                      }`}
+                  >
+                    <p className="text-sm whitespace-pre-wrap break-words">
+                      {message.body}
+                    </p>
+                    <p
+                      className={`text-xs mt-1 ${message.direction === "outbound"
+                        ? "text-primary-foreground/70"
+                        : "text-muted-foreground"
+                        }`}
+                    >
+                      {isMounted
+                        ? new Date(message.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                        : ""}
+                    </p>
+                  </Card>
+                </div>
+              );
+            } else {
+              const appointment = item.data;
+              return (
+                <div key={`appointment-${appointment.id}`} className="flex justify-center">
+                  <Card className="px-6 py-3 border-2 border-blue-500/20 bg-blue-50 dark:bg-blue-950/20">
+                    <div className="flex items-center gap-3">
+                      <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                        Appointment Scheduled:
+                      </p>
+                      <p className="text-sm text-blue-600 dark:text-blue-400">
+                        {isMounted
+                          ? new Date(appointment.scheduledAt).toLocaleDateString("en-US", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })
+                          : ""}
+                      </p>
+                      <p className="text-sm text-blue-600 dark:text-blue-400">
+                        at {isMounted
+                          ? new Date(appointment.scheduledAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                          : ""}
+                      </p>
+                    </div>
+                  </Card>
+                </div>
+              );
+            }
+          })}
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>

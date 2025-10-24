@@ -24,7 +24,7 @@ CRITICAL: Return ONLY the translated text. Do not include any explanations, quot
 
     const translationPromises = languagesToTranslate.map(async (lang) => {
       const result = await generateText({
-        model: openai("gpt-4-turbo"),
+        model: openai("gpt-5-nano"),
         system: systemPrompt,
         prompt: `Translate this template to ${lang}:\n\n${template}`,
       });

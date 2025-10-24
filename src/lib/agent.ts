@@ -1,4 +1,4 @@
-import { generateText } from "ai";
+import { generateText, stepCountIs } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { checkAvailability, scheduleAppointment } from "./appointments";
@@ -27,7 +27,7 @@ export interface AgentContext {
 export async function generateAgentResponse(
   context: AgentContext
 ): Promise<string> {
-  const systemPrompt = `You are a helpful service scheduling assistant for ${context.customer.make} recall service.
+  const systemPrompt = ` You are a helpful service scheduling assistant for ${context.customer.make} recall service.
 
 Customer Information:
 - Name: ${context.customer.firstName} ${context.customer.lastName}
@@ -36,6 +36,8 @@ Customer Information:
 - Recall: ${context.customer.recallDesc} (Code: ${context.customer.recallCode})
 
 Your job is to help the customer check availability and schedule their recall service appointment.
+
+For context today is ${new Date().toLocaleDateString()}. ${new Date().getDay()}
 
 Business Hours: Monday-Friday, 9:00 AM - 5:00 PM
 Appointment Duration: 1 hour per appointment
@@ -54,8 +56,9 @@ Be friendly, professional, and helpful. Use the tools available to check availab
   ];
 
   const result = await generateText({
-    model: openai("gpt-4-turbo"),
+    model: openai("gpt-5-nano"),
     system: systemPrompt,
+    stopWhen: stepCountIs(2),
     messages,
     tools: {
       checkAvailability: {
@@ -70,7 +73,6 @@ Be friendly, professional, and helpful. Use the tools available to check availab
         }),
         execute: async ({ date }) => {
           const availableSlots = await checkAvailability(
-            context.contactId,
             date
           );
 

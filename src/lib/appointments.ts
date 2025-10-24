@@ -30,7 +30,6 @@ function formatTimeSlot(hour: number): string {
 }
 
 export async function checkAvailability(
-  contactId: string,
   dateString: string
 ): Promise<string[]> {
   const requestedDate = new Date(dateString + "T00:00:00");
