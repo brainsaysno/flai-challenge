@@ -307,12 +307,12 @@ export default function SmsPage() {
               const appointment = item.data;
               return (
                 <div key={`appointment-${appointment.id}`} className="flex justify-center">
-                  <Card className="px-6 py-3 border-2 border-blue-500/20 bg-blue-50 dark:bg-blue-950/20">
+                  <Card className="px-6 py-3 border-2 border-primary/20 bg-accent/50">
                     <div className="flex items-center gap-3">
-                      <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                      <p className="text-sm font-semibold text-primary">
                         Appointment Scheduled:
                       </p>
-                      <p className="text-sm text-blue-600 dark:text-blue-400">
+                      <p className="text-sm text-foreground">
                         {isMounted
                           ? new Date(appointment.scheduledAt).toLocaleDateString("en-US", {
                             weekday: "long",
@@ -322,7 +322,7 @@ export default function SmsPage() {
                           })
                           : ""}
                       </p>
-                      <p className="text-sm text-blue-600 dark:text-blue-400">
+                      <p className="text-sm text-foreground">
                         at {isMounted
                           ? new Date(appointment.scheduledAt).toLocaleTimeString([], {
                             hour: "2-digit",

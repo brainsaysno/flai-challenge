@@ -68,8 +68,8 @@ export function CampaignContactsTable({ contacts }: CampaignContactsTableProps) 
               key={contact.id}
               onClick={() => handleRowClick(contact.id)}
               className={`cursor-pointer transition-colors ${contact.appointmentScheduledAt
-                ? "bg-green-50 hover:bg-green-100"
-                : "hover:bg-gray-50"
+                ? "bg-green-300/50 hover:bg-green-300"
+                : "hover:bg-muted/50"
                 }`}
             >
               <TableCell>{contact.firstName}</TableCell>

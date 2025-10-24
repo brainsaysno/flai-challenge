@@ -44,7 +44,7 @@ export function DataTable({ data, selectedIndex, onRowClick }: DataTableProps) {
             <TableRow
               key={index}
               onClick={() => onRowClick?.(index)}
-              className={`cursor-pointer hover:bg-gray-100 ${selectedIndex === index ? "bg-blue-100 hover:bg-blue-100" : ""}`}
+              className={`cursor-pointer hover:bg-muted/50 ${selectedIndex === index ? "bg-accent hover:bg-accent" : ""}`}
             >
               <TableCell>{record.phone}</TableCell>
               <TableCell>{record.first_name}</TableCell>
