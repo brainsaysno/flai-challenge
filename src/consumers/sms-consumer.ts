@@ -1,5 +1,5 @@
 import amqp, { type Channel, type ConsumeMessage } from "amqplib";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { env } from "~/env";
 import { db } from "../server/db/index";
 import { contacts, messages } from "../server/db/schema";
@@ -7,6 +7,10 @@ import { sendToAgentQueue } from "~/lib/rabbitmq";
 
 const RABBITMQ_URL = env.RABBITMQ_URL;
 const SMS_QUEUE = "sms_queue";
+const THROTTLE_DELAY_MS = 500;
+
+const delay = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
 interface SmsMessage {
   phone: string;
@@ -16,7 +20,7 @@ interface SmsMessage {
     last_name: string;
     vin: string;
   };
-  campaignId?: string;
+  campaignId: string;
   direction?: "inbound" | "outbound";
   timestamp: string;
 }
@@ -25,7 +29,7 @@ async function processSmsMessage(message: SmsMessage): Promise<void> {
   console.log("Processing SMS message:", message);
 
   const contact = await db.query.contacts.findFirst({
-    where: eq(contacts.phone, message.phone),
+    where: and(eq(contacts.phone, message.phone), eq(contacts.campaignId, message.campaignId)),
   });
 
   if (!contact) {
@@ -75,6 +79,8 @@ export async function startSmsConsumer(): Promise<void> {
             const message: SmsMessage = JSON.parse(content);
 
             await processSmsMessage(message);
+
+            await delay(THROTTLE_DELAY_MS);
 
             channel.ack(msg);
           } catch (error) {

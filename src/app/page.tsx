@@ -134,6 +134,14 @@ export default function HomePage() {
     new Set(data.map((customer) => customer.language))
   );
 
+  const handleCustomerSelect = (index: number) => {
+    setSelectedCustomerIndex(index);
+    const customer = data[index];
+    if (customer) {
+      setActiveLanguage(customer.language);
+    }
+  };
+
   const handleTranslate = async () => {
     setTranslating(true);
     setError(null);
@@ -253,7 +261,7 @@ export default function HomePage() {
           <DataTable
             data={data}
             selectedIndex={selectedCustomerIndex}
-            onRowClick={setSelectedCustomerIndex}
+            onRowClick={handleCustomerSelect}
           />
 
           <div className="border rounded-md">

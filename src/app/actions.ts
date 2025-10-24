@@ -14,24 +14,26 @@ export async function translateTemplate(
   languages: string[]
 ): Promise<Record<string, string>> {
   try {
-    const languageList = languages.filter((lang) => lang !== "default").join(", ");
+    const languagesToTranslate = languages.filter((lang) => lang !== "default");
 
-    const systemPrompt = `You are a professional translator. Translate the following SMS template to each of the requested languages.
+    const systemPrompt = `You are a professional translator. Translate the following SMS template to the requested language.
 
 The template uses Handlebars syntax (e.g., {{first_name}}, {{last_name}}, {{vin}}) - DO NOT translate these placeholders, keep them exactly as they are.
 
-Return ONLY a JSON object where keys are language codes and values are the translated templates.
-For example: {"es": "translated spanish text", "fr": "translated french text"}
+CRITICAL: Return ONLY the translated text. Do not include any explanations, quotation marks, or additional formatting. Output only the pure translated template text.`;
 
-Use standard ISO 639-1 language codes (e.g., "es" for Spanish, "fr" for French, "en" for English).`;
+    const translationPromises = languagesToTranslate.map(async (lang) => {
+      const result = await generateText({
+        model: openai("gpt-4-turbo"),
+        system: systemPrompt,
+        prompt: `Translate this template to ${lang}:\n\n${template}`,
+      });
 
-    const result = await generateText({
-      model: openai("gpt-4-turbo"),
-      system: systemPrompt,
-      prompt: `Template to translate:\n${template}\n\nTranslate to these languages: ${languageList}`,
+      return [lang, result.text.trim()] as const;
     });
 
-    const translations = JSON.parse(result.text) as Record<string, string>;
+    const translationResults = await Promise.all(translationPromises);
+    const translations = Object.fromEntries(translationResults);
 
     return {
       default: template,
@@ -91,6 +93,7 @@ export async function sendSmsToAll(
           last_name: customer.last_name,
           vin: customer.vin,
         },
+        campaignId,
         timestamp: new Date().toISOString(),
       });
     }
@@ -120,6 +123,8 @@ export async function getCampaignFunnelStats(campaignId: string) {
         .from(appointments)
         .where(eq(appointments.campaignId, campaignId)),
     ]);
+
+    console.log("CAMPAIGN", sentResult, deliveredResult, scheduledResult);
 
     const totalSent = sentResult[0]?.count ?? 0;
     const totalDelivered = deliveredResult[0]?.count ?? 0;

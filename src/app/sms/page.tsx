@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Send } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -24,6 +25,9 @@ import {
 } from "./actions";
 
 export default function SmsPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [messages, setMessages] = useState<SmsMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -50,9 +54,22 @@ export default function SmsPage() {
 
   const initializeContact = async () => {
     try {
+      const contactIdFromParams = searchParams.get("contactId");
       const contacts = await searchContacts("");
+
+      if (contactIdFromParams) {
+        const contact = contacts.find((c) => c.id === contactIdFromParams);
+        if (contact) {
+          setSelectedContact(contact);
+          return;
+        }
+      }
+
       if (contacts.length > 0 && contacts[0]) {
         setSelectedContact(contacts[0]);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("contactId", contacts[0].id);
+        router.replace(`${pathname}?${params.toString()}`);
       }
     } catch (error) {
       console.error("Failed to load initial contact:", error);
@@ -136,6 +153,10 @@ export default function SmsPage() {
     setSelectedContact(contact);
     setCommandOpen(false);
     setMessages([]);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("contactId", contact.id);
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   useEffect(() => {
