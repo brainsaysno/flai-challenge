@@ -10,6 +10,7 @@ export interface Contact {
   firstName: string;
   lastName: string;
   phone: string;
+  campaignId: string;
 }
 
 export interface SmsMessage {
@@ -116,6 +117,7 @@ export async function searchContacts(query: string): Promise<Contact[]> {
         firstName: contacts.firstName,
         lastName: contacts.lastName,
         phone: contacts.phone,
+        campaignId: contacts.campaignId,
       })
       .from(contacts)
       .limit(50);
@@ -131,6 +133,7 @@ export async function searchContacts(query: string): Promise<Contact[]> {
       firstName: contacts.firstName,
       lastName: contacts.lastName,
       phone: contacts.phone,
+      campaignId: contacts.campaignId,
     })
     .from(contacts)
     .where(
@@ -152,6 +155,7 @@ export async function getContactById(contactId: string): Promise<Contact | undef
       firstName: contacts.firstName,
       lastName: contacts.lastName,
       phone: contacts.phone,
+      campaignId: contacts.campaignId,
     })
     .from(contacts)
     .where(eq(contacts.id, contactId))

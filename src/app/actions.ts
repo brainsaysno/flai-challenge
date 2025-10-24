@@ -3,7 +3,7 @@
 import Handlebars from "handlebars";
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { eq, count, countDistinct } from "drizzle-orm";
+import { eq, count, countDistinct, desc, sql } from "drizzle-orm";
 import { type CsvRecord } from "~/lib/schemas";
 import { sendToSmsQueue } from "~/lib/rabbitmq";
 import { db } from "~/server/db";
@@ -141,6 +141,71 @@ export async function getCampaignFunnelStats(campaignId: string) {
       error instanceof Error
         ? error.message
         : "Failed to get campaign funnel stats"
+    );
+  }
+}
+
+export async function getCampaignContactsWithStats(campaignId: string) {
+  try {
+    const campaignContacts = await db
+      .select()
+      .from(contacts)
+      .where(eq(contacts.campaignId, campaignId));
+
+    const messageStats = await db
+      .select({
+        contactId: messages.contactId,
+        count: count(),
+        lastMessageAt: sql<number>`MAX(${messages.createdAt})`,
+      })
+      .from(messages)
+      .where(eq(messages.campaignId, campaignId))
+      .groupBy(messages.contactId);
+
+    const campaignAppointments = await db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.campaignId, campaignId));
+
+    const messageStatsMap = new Map(
+      messageStats.map((stat) => [
+        stat.contactId,
+        { count: stat.count, lastMessageAt: stat.lastMessageAt },
+      ])
+    );
+
+    const appointmentsMap = new Map(
+      campaignAppointments.map((apt) => [apt.contactId, apt.scheduledAt])
+    );
+
+    const contactsWithStats = campaignContacts.map((contact) => {
+      const stats = messageStatsMap.get(contact.id);
+      const appointmentTime = appointmentsMap.get(contact.id);
+
+      return {
+        id: contact.id,
+        firstName: contact.firstName,
+        lastName: contact.lastName,
+        phone: contact.phone,
+        recallCode: contact.recallCode,
+        recallDesc: contact.recallDesc,
+        messageCount: stats?.count ?? 0,
+        lastMessageAt: stats?.lastMessageAt ?? null,
+        appointmentScheduledAt: appointmentTime ?? null,
+      };
+    });
+
+    return contactsWithStats.sort((a, b) => {
+      if (a.appointmentScheduledAt && !b.appointmentScheduledAt) return -1;
+      if (!a.appointmentScheduledAt && b.appointmentScheduledAt) return 1;
+      return 0;
+    });
+  } catch (error) {
+    console.error("Error getting campaign contacts with stats:", error);
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : "Failed to get campaign contacts with stats"
     );
   }
 }

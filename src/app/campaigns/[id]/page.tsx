@@ -1,15 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCampaignFunnelStats } from "~/app/actions";
+import Link from "next/link";
+import { getCampaignFunnelStats, getCampaignContactsWithStats } from "~/app/actions";
+import { CampaignContactsTable } from "~/components/CampaignContactsTable";
 
 interface CampaignPageProps {
   params: Promise<{ id: string }>;
 }
 
+interface ContactWithStats {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  recallCode: string;
+  recallDesc: string;
+  messageCount: number;
+  lastMessageAt: number | null;
+  appointmentScheduledAt: Date | null;
+}
+
 export default function CampaignPage({ params }: CampaignPageProps) {
   const [id, setId] = useState<string | null>(null);
   const [stats, setStats] = useState({ sent: 0, delivered: 0, scheduled: 0 });
+  const [contacts, setContacts] = useState<ContactWithStats[]>([]);
 
   useEffect(() => {
     void params.then((p) => setId(p.id));
@@ -18,11 +33,15 @@ export default function CampaignPage({ params }: CampaignPageProps) {
   const fetchStats = async () => {
     try {
       if (id) {
-        const data = await getCampaignFunnelStats(id);
-        setStats(data);
+        const [statsData, contactsData] = await Promise.all([
+          getCampaignFunnelStats(id),
+          getCampaignContactsWithStats(id),
+        ]);
+        setStats(statsData);
+        setContacts(contactsData);
       }
     } catch (error) {
-      console.error("Failed to fetch campaign stats:", error);
+      console.error("Failed to fetch campaign data:", error);
     }
   };
 
@@ -39,7 +58,13 @@ export default function CampaignPage({ params }: CampaignPageProps) {
   }, [id]);
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-8 h-screen">
+      <Link
+        href="/"
+        className="mb-2 inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground"
+      >
+        ← Back to Campaigns
+      </Link>
       <h1 className="mb-8 text-3xl font-bold">Campaign #{id}</h1>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -72,6 +97,10 @@ export default function CampaignPage({ params }: CampaignPageProps) {
             Campaign appointments
           </p>
         </div>
+      </div>
+
+      <div className="mt-8 h-full">
+        <CampaignContactsTable contacts={contacts} />
       </div>
     </div>
   );

@@ -10,8 +10,10 @@ import { csvRecordSchema, type CsvRecord } from "~/lib/schemas";
 import { DataTable } from "~/components/DataTable";
 import { sendSmsToAll, translateTemplate } from "./actions";
 import { Textarea } from "~/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Button } from "~/components/ui/button";
+
+const DEFAULT_TEMPLATE = `Hello {{first_name}} {{last_name}},\n\nYour {{year}} {{make}} {{model}} (VIN: {{vin}}) has an open recall.\n\nRecall: {{recall_code}}\nDescription: {{recall_desc}}\n\nPlease reply with a time that works for you. We can schedule your recall service Monday-Friday between 9 AM and 5 PM, and it takes about an hour.`
 
 export default function HomePage() {
   const router = useRouter();
@@ -23,8 +25,7 @@ export default function HomePage() {
   const [translating, setTranslating] = useState(false);
   const [selectedCustomerIndex, setSelectedCustomerIndex] = useState(0);
   const [templates, setTemplates] = useState<Record<string, string>>({
-    default:
-      "Hello {{first_name}} {{last_name}},\n\nYour {{year}} {{make}} {{model}} (VIN: {{vin}}) has an open recall.\n\nRecall: {{recall_code}}\nDescription: {{recall_desc}}\n\nPlease contact us at {{phone}}.",
+    default: DEFAULT_TEMPLATE
   });
   const [activeLanguage, setActiveLanguage] = useState("default");
 
@@ -34,8 +35,7 @@ export default function HomePage() {
     setLoading(false);
     setSelectedCustomerIndex(0);
     setTemplates({
-      default:
-        "Hello {{first_name}} {{last_name}},\n\nYour {{year}} {{make}} {{model}} (VIN: {{vin}}) has an open recall.\n\nRecall: {{recall_code}}\nDescription: {{recall_desc}}\n\nPlease contact us at {{phone}}.",
+      default: DEFAULT_TEMPLATE
     });
     setActiveLanguage("default");
     if (fileInputRef.current) {
@@ -137,7 +137,7 @@ export default function HomePage() {
   const handleCustomerSelect = (index: number) => {
     setSelectedCustomerIndex(index);
     const customer = data[index];
-    if (customer) {
+    if (customer && Object.keys(templates).length > 1) {
       setActiveLanguage(customer.language);
     }
   };

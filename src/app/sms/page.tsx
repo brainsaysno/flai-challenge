@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Send } from "lucide-react";
+import Link from "next/link";
+import { Send, ExternalLink } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { ScrollArea } from "~/components/ui/scroll-area";
@@ -200,22 +201,31 @@ export default function SmsPage() {
   return (
     <div className="flex flex-col h-screen bg-background">
       <div className="border-b px-6 py-4 bg-card">
-        <button
-          onClick={() => setCommandOpen(true)}
-          className="flex items-center gap-3 hover:bg-muted/50 rounded-lg p-2 -m-2 transition-colors w-full text-left"
-        >
-          <Avatar className="h-10 w-10">
-            <AvatarFallback className="bg-primary text-primary-foreground">
-              {customerInitials}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <p>Acting as: <span className="font-semibold">{customerName}</span></p>
-            <p className="text-sm text-muted-foreground">
-              {selectedContact.phone}
-            </p>
-          </div>
-        </button>
+        <div className="flex items-center justify-between gap-4">
+          <button
+            onClick={() => setCommandOpen(true)}
+            className="flex items-center gap-3 hover:bg-muted/50 rounded-lg p-2 -m-2 transition-colors text-left flex-1"
+          >
+            <Avatar className="h-10 w-10">
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {customerInitials}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p>Acting as: <span className="font-semibold">{customerName}</span></p>
+              <p className="text-sm text-muted-foreground">
+                {selectedContact.phone}
+              </p>
+            </div>
+          </button>
+          <Link
+            href={`/campaigns/${selectedContact.campaignId}`}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            View Campaign
+            <ExternalLink className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
 
       <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
